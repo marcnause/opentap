@@ -528,6 +528,31 @@ namespace OpenTap
         public IEnumerable<string> Errors => currentError == null ? Array.Empty<string>() : new[] { currentError };
     }
 
+    class DateTimeAnnotation : IStringValueAnnotation, ICopyStringValueAnnotation
+    {
+        private AnnotationCollection annotation;
+
+        public string Value
+        {
+            get
+            {
+                if (annotation.Get<IObjectValueAnnotation>(from: this).Value is DateTime dt)
+                    return dt.ToString(CultureInfo.CurrentCulture);
+                return "";
+            }
+            set
+            {
+                if (DateTime.TryParse(value, out var dt))
+                    annotation.Get<IObjectValueAnnotation>(from: this).Value = dt;
+            }
+        }
+
+        public DateTimeAnnotation(AnnotationCollection annotation)
+        {
+            this.annotation = annotation;
+        }
+    }
+    
     class TimeSpanAnnotation : IStringValueAnnotation, ICopyStringValueAnnotation
     {
         public string Value
@@ -2661,6 +2686,8 @@ namespace OpenTap
 
                 if (mem.ReflectionInfo.DescendsTo(typeof(TimeSpan)))
                     annotation.Add(new TimeSpanAnnotation(annotation));
+                if (mem.ReflectionInfo.DescendsTo(typeof(DateTime)))
+                    annotation.Add(new DateTimeAnnotation(annotation));
                 
                 Sequence.ProcessPattern(attributes, 
                     (UnitAttribute x) => annotation.Add(x), 
