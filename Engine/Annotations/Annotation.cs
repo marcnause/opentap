@@ -542,8 +542,7 @@ namespace OpenTap
             }
             set
             {
-                if (DateTime.TryParse(value, out var dt))
-                    annotation.Get<IObjectValueAnnotation>(from: this).Value = dt;
+                annotation.Get<IObjectValueAnnotation>(from: this).Value = DateTime.Parse(value);
             }
         }
 
