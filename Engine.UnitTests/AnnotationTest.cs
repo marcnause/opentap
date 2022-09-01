@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
@@ -1848,18 +1849,24 @@ namespace OpenTap.UnitTests
             var dsv = date.Get<IStringValueAnnotation>();
             
             Assert.AreEqual(default(DateTime), times.MyDate);
-            StringAssert.StartsWith("1/1/0001", dsv.Value);
-            times.MyDate = DateTime.Parse("11/30/1000");
+            StringAssert.StartsWith("01/01/0001", dsv.Value);
+            times.MyDate = DateTime.Parse("11/30/1000", DateTimeFormatInfo.InvariantInfo);
             a.Read();
             StringAssert.StartsWith("11/30/1000", dsv.Value);
             
             dsv.Value = "07/27/1978";
+            Assert.AreEqual(0, date.Get<IErrorAnnotation>().Errors.Count());
             a.Write();
             
             Assert.AreEqual(7, times.MyDate.Month);
             Assert.AreEqual(27, times.MyDate.Day);
             Assert.AreEqual(1978, times.MyDate.Year);
 
+            dsv.Value = "garbage string";
+            Assert.AreEqual(1, date.Get<IErrorAnnotation>().Errors.Count());
+            
+            dsv.Value = "01/01/0001";
+            Assert.AreEqual(0, date.Get<IErrorAnnotation>().Errors.Count());
         }
     }
 }

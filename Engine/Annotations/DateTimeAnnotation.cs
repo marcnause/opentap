@@ -14,14 +14,14 @@ namespace OpenTap
             get
             {
                 if (annotation.Get<IObjectValueAnnotation>(from: this).Value is DateTime dt)
-                    return dt.ToString(CultureInfo.CurrentCulture);
+                    return dt.ToString(CultureInfo.InvariantCulture);
                 return "";
             }
             set
             {
                 try
                 {
-                    annotation.Get<IObjectValueAnnotation>(from: this).Value = DateTime.Parse(value);
+                    annotation.Get<IObjectValueAnnotation>(from: this).Value = DateTime.Parse(value, DateTimeFormatInfo.InvariantInfo);
                     currentError = null;
                 }
                 catch (Exception ex)
