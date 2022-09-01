@@ -1,11 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OpenTap
 {
-    class DateTimeAnnotation : IStringValueAnnotation, ICopyStringValueAnnotation
+    class DateTimeAnnotation : IStringValueAnnotation, ICopyStringValueAnnotation, IErrorAnnotation
     {
         private AnnotationCollection annotation;
+        private string currentError = null;
 
         public string Value
         {
@@ -17,7 +19,15 @@ namespace OpenTap
             }
             set
             {
-                annotation.Get<IObjectValueAnnotation>(from: this).Value = DateTime.Parse(value);
+                try
+                {
+                    annotation.Get<IObjectValueAnnotation>(from: this).Value = DateTime.Parse(value);
+                    currentError = null;
+                }
+                catch (Exception ex)
+                {
+                    currentError = ex.Message;
+                }
             }
         }
 
@@ -25,5 +35,7 @@ namespace OpenTap
         {
             this.annotation = annotation;
         }
+
+        public IEnumerable<string> Errors => currentError == null ? Array.Empty<string>() : new[] { currentError };
     }
 }

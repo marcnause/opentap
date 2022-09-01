@@ -1829,18 +1829,22 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(Overlapping.Z, o.Overlapping);
         }
 
-        class DateTimeClass
+        public class DateTimeStep : TestStep
         {
             public DateTime MyDate { get; set; }
+            public override void Run()
+            {
+                throw new NotImplementedException();
+            }
         }
         [Test]
         public void TestTimeAnnotations ()
         {
-            var times = new DateTimeClass();
+            var times = new DateTimeStep();
             var a = AnnotationCollection.Annotate(times);
             var members = a.Get<IMembersAnnotation>().Members.ToLookup(m => m.Name);
 
-            var date = members[nameof(DateTimeClass.MyDate)].First();
+            var date = members[nameof(DateTimeStep.MyDate)].First();
             var dsv = date.Get<IStringValueAnnotation>();
             
             Assert.AreEqual(default(DateTime), times.MyDate);
