@@ -1848,6 +1848,8 @@ namespace OpenTap.UnitTests
             var date = members[nameof(DateTimeStep.MyDate)].First();
             var dsv = date.Get<IStringValueAnnotation>();
             
+            string[] GetErrors() => date.GetAll<IErrorAnnotation>().SelectMany(a => a.Errors).ToArray();
+
             Assert.AreEqual(default(DateTime), times.MyDate);
             StringAssert.StartsWith("01/01/0001", dsv.Value);
             times.MyDate = DateTime.Parse("11/30/1000", DateTimeFormatInfo.InvariantInfo);
@@ -1855,7 +1857,7 @@ namespace OpenTap.UnitTests
             StringAssert.StartsWith("11/30/1000", dsv.Value);
             
             dsv.Value = "07/27/1978";
-            Assert.AreEqual(0, date.Get<IErrorAnnotation>().Errors.Count());
+            Assert.AreEqual(0, GetErrors().Count());
             a.Write();
             
             Assert.AreEqual(7, times.MyDate.Month);
@@ -1863,10 +1865,11 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(1978, times.MyDate.Year);
 
             dsv.Value = "garbage string";
-            Assert.AreEqual(1, date.Get<IErrorAnnotation>().Errors.Count());
+            
+            Assert.AreEqual(1, GetErrors().Count());
             
             dsv.Value = "01/01/0001";
-            Assert.AreEqual(0, date.Get<IErrorAnnotation>().Errors.Count());
+            Assert.AreEqual(0, GetErrors().Count());
         }
     }
 }
