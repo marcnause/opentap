@@ -3,7 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
 
@@ -34,7 +36,7 @@ namespace OpenTap.Plugins.BasicSteps
     }
 
     [Obfuscation(Exclude = true, ApplyToMembers = true)]
-    class DialogRequest : IDisplayAnnotation
+    class DialogRequest : IDisplayAnnotation, IDynamicMemberValue
     {
         public DialogRequest(string Title, string Message)
         {
@@ -56,6 +58,7 @@ namespace OpenTap.Plugins.BasicSteps
         [Layout(LayoutMode.FullRow, rowHeight: 2)]
         [Browsable(true)]
         [Display("Message", Order: 2)]
+        [EnabledIf(nameof(Message), "", Invert = true, HideIfDisabled = true)]
         public string Message { get; }
 
         [Browsable(false)]
@@ -81,6 +84,10 @@ namespace OpenTap.Plugins.BasicSteps
         double IDisplayAnnotation.Order => DisplayAttribute.DefaultOrder;
 
         bool IDisplayAnnotation.Collapsed => false;
+
+        readonly Dictionary<IMemberData, object> dynamicMembers = new Dictionary<IMemberData, object>();
+        bool IDynamicMemberValue.TryGetValue(IMemberData member, out object value) => dynamicMembers.TryGetValue(member, out value);
+        void IDynamicMemberValue.SetValue(IMemberData member, object value) => dynamicMembers[member] = value;
     }
 
     [Display("Dialog", Group: "Basic Steps", Description: "Shows a message to the user and waits for a response. " +
@@ -157,13 +164,25 @@ namespace OpenTap.Plugins.BasicSteps
             Title = "Title";
 
             Rules.Add(() => !string.IsNullOrWhiteSpace(Title), "Title is empty", Title);
-            Rules.Add(() => !string.IsNullOrWhiteSpace(Message), "Message is empty", Message);
         }
 
         public override void Run()
         {
             Verdict answer = DefaultAnswer;
             var req = new DialogRequest(Title, Message) { Buttons = Buttons, Picture = ShowPicture ? Picture : null };
+
+            var userMembers = TypeData.GetTypeData(this)
+                .GetMembers()
+                .OfType<UserDefinedDynamicMember>()
+                .ToArray();
+            
+            // load values into the dialog.
+            foreach (var member in userMembers)
+            {
+                DynamicMember.AddDynamicMember(req, member);
+                member.SetValue(req, member.GetValue(this));
+            }
+            
             try
             {
                 var timeout = TimeSpan.FromSeconds(Timeout);
@@ -173,6 +192,10 @@ namespace OpenTap.Plugins.BasicSteps
                     timeout = TimeSpan.MaxValue;
                 UserInput.Request(req, timeout, false);
 
+                // read the values back from the dialog.
+                foreach (var member in userMembers)
+                    member.SetValue(this, member.GetValue(req));
+                
                 if (Buttons == InputButtons.OkCancel)
                 {
                     answer = req.Input2 == WaitForInputResult2.Ok ? PositiveAnswer : NegativeAnswer;
