@@ -13,9 +13,16 @@ namespace OpenTap
         IDictionary<string, IMemberData> DynamicMembers { get; set; }
     }
 
+    /// <summary>
+    /// Defines a object which can set and get the value of a dynamic member. This is an accelerating structure, as
+    /// the value otherwise will be entered into a dictionary containing an equal mapping.
+    /// </summary>
     public interface IDynamicMemberValue
     {
+        /// <summary> Gets the value of a dynamic member. </summary>
         bool TryGetValue(IMemberData member, out object value);
+        
+        /// <summary> Sets the value of a dynamic member. </summary>
         void SetValue(IMemberData member, object value);
     }
     
@@ -265,29 +272,45 @@ namespace OpenTap
         }
     }
     
+    /// <summary>
+    /// A dynamic member is a member which can be attached to a type during runtime.
+    /// </summary>
     public class DynamicMember : IMemberData
     {
+        /// <summary>  Returns the list of attributes for the member. </summary>
         [DefaultValue(new object[0])]
         public virtual IEnumerable<object> Attributes { get; set; } = Array.Empty<object>();
         
+        /// <summary>
+        /// The member name. This should not collide with an existing member.
+        /// </summary>
         public string Name { get; set; }
+        
+        /// <summary>  The type which defines this member. Usually just a TestStep. </summary>
         public ITypeData DeclaringType { get; set; }
+        /// <summary> The type of the member. </summary>
         public ITypeData TypeDescriptor { get; set; }
 
+        /// <summary> IF the property is writable. </summary>
         [DefaultValue(true)] 
         public bool Writable { get; set; } = true;
         
+        /// <summary> IF the property is readable. </summary>
         [DefaultValue(true)]
         public bool Readable { get; set; } = true;
 
-        public object DefaultValue;
+        /// <summary> The default value of the member. </summary>
+        [DefaultValue(null)]
+        public object DefaultValue { get; set; } 
 
         readonly ConditionalWeakTable<object, object> dict = new ConditionalWeakTable<object, object>();
 
+        /// <summary>  Creates a new dynamic member instance. </summary>
         public DynamicMember()
         {
-            
+
         }
+        
         /// <summary> This overload allows two DynamicMembers to share the same Get/Set value backing field.</summary>
         /// <param name="base"></param>
         public DynamicMember(DynamicMember @base)
@@ -295,6 +318,7 @@ namespace OpenTap
             dict = @base.dict;
         }
         
+        /// <summary> Sets the value. </summary>
         public virtual void SetValue(object owner, object value)
         {
             if (owner is IDynamicMemberValue dmv)
@@ -307,6 +331,7 @@ namespace OpenTap
                 dict.Add(owner, value);
         }
 
+        /// <summary> Gets the current value </summary>
         public virtual object GetValue(object owner)
         {
             if (owner is IDynamicMemberValue dmv)
@@ -321,6 +346,7 @@ namespace OpenTap
             return DefaultValue;
         }
 
+        /// <summary> Adds a dynamic member to an object. </summary>
         public static void AddDynamicMember(object target, IMemberData member)
         {
             var members =
@@ -333,6 +359,7 @@ namespace OpenTap
             members[member.Name] = member;
         }
 
+        /// <summary> Removes a dynamic member from an object. </summary>
         public static void RemovedDynamicMember(object target, IMemberData member)
         {
             var members = (Dictionary<string, IMemberData>) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target);
@@ -361,6 +388,7 @@ namespace OpenTap
             else
                 GetPlanFor(source)?.RegisterParameter(member, source);
         }
+        
         static void unregisterParameter(IMemberData member, object source, ParameterMemberData parameter)
         {
             if (source is IParameterizedMembersCache cache)
@@ -376,7 +404,9 @@ namespace OpenTap
             return GetPlanFor(source)?.IsRegistered(member, source) ?? false;
         }
         
-        
+        /// <summary>
+        /// Parameterizes a member of one object unto another object.
+        /// </summary>
         public static ParameterMemberData ParameterizeMember(object target, IMemberData member, object source, string name)
         {
             if(target == null) throw new ArgumentNullException(nameof(target));
@@ -434,6 +464,9 @@ namespace OpenTap
             }
         }
 
+        /// <summary>
+        /// Unparameterizes a member.
+        /// </summary>
         public static void UnparameterizeMember(ParameterMemberData parameterMember, IMemberData member, object source)
         {
             if (parameterMember == null) throw new ArgumentNullException(nameof(parameterMember));
@@ -843,7 +876,6 @@ namespace OpenTap
         }
         public double Priority { get; } = 10;
     }
-    
     /// <summary> An IMemberData that represents a parameter. The parameter controls the value of a set of parameterized members.</summary>
     public interface IParameterMemberData : IMemberData
     {
