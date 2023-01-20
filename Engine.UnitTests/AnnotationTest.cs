@@ -1828,5 +1828,45 @@ namespace OpenTap.UnitTests
             a.Read();
             Assert.AreEqual(Overlapping.Z, o.Overlapping);
         }
+
+        public class AvailableValuesArrayUser
+        {
+            public List<string> AvailableItems { get; set; } = new List<string>() { "A", "B", "C" };
+
+            [AvailableValues(nameof(AvailableItems))]
+            public List<string> SelectedListItems { get; set; } = new List<string>();
+
+            [AvailableValues(nameof(AvailableItems))]
+            public string[] SelectedArrayItems { get; set; } = Array.Empty<string>();
+        }
+
+        [Test]
+        public void TestAddToArrayWithAvailableValues()
+        {
+            var av = new AvailableValuesArrayUser();
+            var names = new string[] { nameof(av.SelectedListItems), nameof(av.SelectedArrayItems) };
+
+            foreach (var name in names)
+            {
+                var a = AnnotationCollection.Annotate(av);
+
+                var selectedItems = a.GetMember(name);
+
+                var availProxy = selectedItems.Get<IAvailableValuesAnnotationProxy>();
+                var multiselect = selectedItems.Get<IMultiSelectAnnotationProxy>();
+
+                multiselect.SelectedValues = availProxy.AvailableValues.Take(2);
+
+                a.Write();
+                a.Read();
+            }
+            
+            Assert.AreEqual("A", av.SelectedListItems[0]);
+            Assert.AreEqual("B", av.SelectedListItems[1]);
+            
+            
+            Assert.AreEqual("A", av.SelectedArrayItems[0]);
+            Assert.AreEqual("B", av.SelectedArrayItems[1]);
+        }
     }
 }
